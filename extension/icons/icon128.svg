@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- 背景 -->
+  <rect width="128" height="128" rx="24" fill="#1890ff"/>
+  
+  <!-- 图表/量化符号 -->
+  <path d="M32 88 L48 64 L64 76 L80 48 L96 56" 
+        stroke="white" 
+        stroke-width="6" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        fill="none"/>
+  
+  <!-- 数据点 -->
+  <circle cx="32" cy="88" r="5" fill="white"/>
+  <circle cx="48" cy="64" r="5" fill="white"/>
+  <circle cx="64" cy="76" r="5" fill="white"/>
+  <circle cx="80" cy="48" r="5" fill="white"/>
+  <circle cx="96" cy="56" r="5" fill="white"/>
+  
+  <!-- 字母 Q -->
+  <text x="64" y="115" 
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif" 
+        font-size="16" 
+        font-weight="bold" 
+        fill="white" 
+        text-anchor="middle">Q</text>
+</svg>

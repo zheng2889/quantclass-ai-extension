@@ -1,0 +1,27 @@
+gstack 角色列表
+=====================================
+
+| 技能 | 功能描述 |
+|------|----------|
+| /office-hours | 从这里开始。在写代码前重构你的产品创意 |
+| /plan-ceo-review | CEO 级别审查：发现请求中的 10 星产品 |
+| /plan-eng-review | 锁定架构、数据流、边界情况和测试 |
+| /plan-design-review | 对每个设计维度评分 0-10，解释 10 分是什么样子 |
+| /design-consultation | 从零开始构建完整的设计系统 |
+| /review | 预提交 PR 审查。找出通过 CI 但在生产中会崩溃的 bug |
+| /debug | 系统性根因调试。没有调查就不修复 |
+| /design-review | 设计审计 + 原子提交的修复循环 |
+| /qa | 打开真实浏览器，找 bug，修复，重新验证 |
+| /qa-only | 同 /qa 但只报告，不修改代码 |
+| /ship | 运行测试、审查、推送、开 PR。一个命令完成 |
+| /document-release | 更新所有文档以匹配刚发布的内容 |
+| /retro | 周回顾，包含个人分解和发布 streaks |
+| /browse | 无头浏览器 — 真实 Chromium，真正点击，~100ms/命令 |
+| /setup-browser-cookies | 从真实浏览器导入 cookies 用于认证测试 |
+| /careful | 危险命令前警告 (rm -rf, DROP TABLE, force-push) |
+| /freeze | 锁定一个目录的编辑。硬性阻止，不只是警告 |
+| /guard | 同时激活 careful + freeze |
+| /unfreeze | 移除目录编辑限制 |
+| /gstack-upgrade | 更新 gstack 到最新版本 |
+
+共计：20 个角色
