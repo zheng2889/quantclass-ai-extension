@@ -20,7 +20,7 @@ from config import get_data_dir
 logger = logging.getLogger(__name__)
 
 KNOWLEDGE_DIR = "knowledge"
-CATEGORIES = ("summaries", "posts")
+CATEGORIES = ("summaries", "posts", "bbs_ai")
 
 
 def ensure_knowledge_dirs() -> Path:

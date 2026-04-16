@@ -15,6 +15,7 @@ from routers.chat import router as chat_router
 from routers.pdf import router as pdf_router
 from routers.agent import router as agent_router
 from routers.memory import router as memory_router
+from routers.bbs import router as bbs_router
 
 # Create main API router
 api_router = APIRouter(prefix="/api")
@@ -33,5 +34,6 @@ api_router.include_router(chat_router, prefix="/chat")
 api_router.include_router(pdf_router, prefix="/pdf")
 api_router.include_router(agent_router, prefix="/agents")
 api_router.include_router(memory_router, prefix="/memory")
+api_router.include_router(bbs_router, prefix="/bbs")
 
 __all__ = ["api_router"]

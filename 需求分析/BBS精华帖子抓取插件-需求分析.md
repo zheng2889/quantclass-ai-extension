@@ -1,5 +1,11 @@
 # BBS 精华帖子抓取插件 - 需求分析
 
+## 开发限制
+
+1. **不删除现有代码** - 新增功能不能影响或删除现有的 GitHub 仓库中的代码
+2. **复用现有函数** - 后台开发尽量复用现有的函数和服务，避免重复代码
+3. **向后兼容** - 新增的 API 和数据库表要确保与现有系统兼容
+
 ## 1. 功能概述
 
 Chrome 插件扩展功能：在 bbs.quantclass.cn 论坛自动抓取精华帖子列表，保存到后台 SQLite 数据库，并自动进行 AI 分析。
@@ -16,10 +22,10 @@ Chrome 插件扩展功能：在 bbs.quantclass.cn 论坛自动抓取精华帖子
     1.3 自动滚动列表（每2-3秒加载下一页，5秒无新数据停止）
     1.4 抓取每个帖子的基本信息（帖子ID、链接、标题、作者）
 
-  步骤2：首次数据保存
-    2.1 对每条帖子，检查数据库是否已存在（根据 post_id 判断）
-    2.2 已存在则跳过，不处理
-    2.3 不存在则插入数据库，状态默认 "pending"
+  步骤2：数据同步（UPSERT）
+    2.1 对每条帖子，使用 UPSERT（ON CONFLICT(post_id) DO UPDATE）写入数据库
+    2.2 已存在则更新标题、作者等信息（支持增量更新）
+    2.3 不存在则插入新记录，状态默认 "pending"
     2.4 保存：post_id、url、author_id、author_name、title、status
 
   步骤3：详细页处理（批量）
@@ -31,6 +37,12 @@ Chrome 插件扩展功能：在 bbs.quantclass.cn 论坛自动抓取精华帖子
              {数据目录}/BBS/{帖子ID}/{帖子ID}.md
         3.2.4 检查是否有附件，有则下载到：
              {数据目录}/BBS/{帖子ID}/attachments/
+             - 优先使用浏览器 setDownloadPath API 指定下载目录
+             - 如浏览器限制无法指定目录，则：
+               a. 点击下载按钮，让浏览器下载到默认目录
+               b. 监听下载完成事件
+               c. 通过下载文件的时间（最近一次）和文件名找到文件
+               d. 将文件移动到目标目录 {数据目录}/BBS/{帖子ID}/attachments/
         3.2.5 从页面提取：发布时间、编辑时间、是否精华
         3.2.6 更新数据库对应记录
         3.2.7 处理下一条
@@ -50,7 +62,8 @@ Chrome 插件扩展功能：在 bbs.quantclass.cn 论坛自动抓取精华帖子
 
 | 配置项 | 说明 | 默认值 |
 |--------|------|--------|
-| api_key | 后台 API 认证 Key | 用户配置 |
+| backend_url | 后台 API 地址 | http://127.0.0.1:8701 |
+| jwt_token | 后台 JWT 认证 Token（登录后获取） | 用户配置 |
 
 ### 后台配置
 
@@ -145,14 +158,14 @@ CREATE TABLE IF NOT EXISTS bbs_list (
     title TEXT,
     author_id TEXT,
     author_name TEXT,
-    publish_time DATETIME,
-    modify_time DATETIME,
+    publish_time TEXT,
+    modify_time TEXT,
     is_digest INTEGER,
     is_original INTEGER,
     has_attachment INTEGER DEFAULT 0,
     md_file_path TEXT,
     attachment_dir TEXT,
-    crawled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    crawled_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%S+08:00', 'now', '+8 hours')),
     status TEXT DEFAULT 'pending',
     has_ai_result INTEGER DEFAULT 0,
     ai_result_path TEXT,
@@ -170,14 +183,14 @@ CREATE TABLE IF NOT EXISTS bbs_list (
 | title | TEXT | 帖子标题 |
 | author_id | TEXT | 作者ID（从 URL 提取） |
 | author_name | TEXT | 作者显示名称 |
-| publish_time | DATETIME | 发布时间（从详细页获取） |
-| modify_time | DATETIME | 编辑时间（从详细页获取） |
+| publish_time | TEXT | 发布时间（从详细页获取，ISO-8601格式） |
+| modify_time | TEXT | 编辑时间（从详细页获取，ISO-8601格式） |
 | is_digest | INTEGER | 是否精华：0/1（从详细页获取） |
 | is_original | INTEGER | 是否独创：0/1（从详细页获取） |
 | has_attachment | INTEGER | 是否有附件：0/1 |
 | md_file_path | TEXT | 帖子原文 MD 文件完整路径 |
 | attachment_dir | TEXT | 附件存储目录 |
-| crawled_at | DATETIME | 抓取时间 |
+| crawled_at | TEXT | 抓取时间（ISO-8601格式，自动生成） |
 | status | TEXT | pending/success/no_permission/failed |
 | has_ai_result | INTEGER | 是否已有 AI 分析结果：0/1 |
 | ai_result_path | TEXT | AI 分析结果 MD 文件路径（仅保留最新） |
@@ -193,7 +206,17 @@ CREATE TABLE IF NOT EXISTS bbs_list (
 详细页处理失败 → failed
 
 success 状态可触发 AI 分析
+
+success + AI分析完成 → 策略入库联动（可选）
 ```
+
+### 扩展：策略入库联动
+
+AI 分析完成后，自动调用 `StrategyService.extract_from_content()` 将分析结果提取为结构化策略实体，入库到 `strategy_entities` 表。复用现有策略提取管道。
+
+### 扩展：批量 AI 分析
+
+管理页面提供"全部待分析"按钮，一键触发所有 `status=success, has_ai_result=0` 的帖子批量 AI 分析。后端串行处理避免并发过载。
 
 ## 7. 文件存储路径格式
 
@@ -237,8 +260,8 @@ success 状态可触发 AI 分析
 ### 同步帖子数据
 
 - **地址**：`POST /api/bbs/sync`
-- **认证**：API Key（存储在 chrome.storage.local 中）
-- **功能**：插入或更新帖子数据（根据 post_id 判断）
+- **认证**：JWT Bearer Token（复用项目现有 auth 系统，需 admin 角色）
+- **功能**：插入或更新帖子数据（根据 post_id 判断，使用 UPSERT 避免竞态）
 
 #### 请求格式
 
@@ -255,21 +278,28 @@ success 状态可触发 AI 分析
 
 #### 响应格式
 
+遵循项目统一的 `BaseResponse` 格式：
+
 ```json
 {
-  "success": true,
-  "message": "数据同步成功",
+  "code": 0,
+  "message": "success",
   "data": {
     "id": 1,
-    "post_id": "77883"
+    "post_id": "77883",
+    "action": "inserted"
   }
 }
+```
+
+> 注：`code=0` 表示成功，`code=1001` 表示参数错误，`code=1002` 表示资源不存在。
+> 与项目其他 API 统一使用 `models.success()` / `models.param_error()` / `models.not_found()` 返回。
 ```
 
 ### AI 分析接口（异步）
 
 - **地址**：`POST /api/bbs/analyze`
-- **认证**：API Key
+- **认证**：JWT Bearer Token（需 admin 角色，复用现有 auth 系统）
 - **返回**：异步返回任务 ID，后续通过轮询或 WebSocket 获取结果
 
 #### 请求格式
@@ -285,10 +315,15 @@ success 状态可触发 AI 分析
 
 ```json
 {
-  "success": true,
-  "task_id": "uuid-xxx",
-  "message": "任务已加入队列"
+  "code": 0,
+  "message": "success",
+  "data": {
+    "task_id": "uuid-xxx",
+    "post_id": "77883",
+    "message": "任务已加入队列"
+  }
 }
+```
 ```
 
 ## 9. 后台管理页面

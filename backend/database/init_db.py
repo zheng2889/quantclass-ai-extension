@@ -225,6 +225,36 @@ CREATE TABLE IF NOT EXISTS memory_items (
 );
 CREATE INDEX IF NOT EXISTS idx_memory_type ON memory_items(memory_type, is_active);
 CREATE INDEX IF NOT EXISTS idx_memory_importance ON memory_items(importance DESC, access_count DESC);
+
+-- ============================================================
+-- Phase 2: BBS Grabber Tables
+-- ============================================================
+
+-- BBS posts table
+CREATE TABLE IF NOT EXISTS bbs_list (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id TEXT UNIQUE NOT NULL,
+    url TEXT NOT NULL,
+    title TEXT,
+    author_id TEXT,
+    author_name TEXT,
+    publish_time TEXT,
+    modify_time TEXT,
+    is_digest INTEGER,
+    is_original INTEGER,
+    has_attachment INTEGER DEFAULT 0,
+    md_file_path TEXT,
+    attachment_dir TEXT,
+    crawled_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%S+08:00', 'now', '+8 hours')),
+    status TEXT DEFAULT 'pending',
+    has_ai_result INTEGER DEFAULT 0,
+    ai_result_path TEXT,
+    error_message TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_bbs_post_id ON bbs_list(post_id);
+CREATE INDEX IF NOT EXISTS idx_bbs_status ON bbs_list(status);
+CREATE INDEX IF NOT EXISTS idx_bbs_publish_time ON bbs_list(publish_time DESC);
+CREATE INDEX IF NOT EXISTS idx_bbs_has_ai_result ON bbs_list(has_ai_result);
 """
 
 

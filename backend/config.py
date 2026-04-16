@@ -96,7 +96,7 @@ def create_default_config() -> ConfigData:
     """Create default configuration."""
     default_config = ConfigData(
         host="127.0.0.1",
-        port=8700,
+        port=8701,
         data_dir=_default_data_dir(),
         default_model="claude-4.6-sonnet",
         default_provider="anthropic",

@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from config import get_settings, load_config, ensure_config_dir
 from database import init_database, close_database
 from routers import api_router
+from routers.bbs import page_router as bbs_page_router
 from models import BaseResponse, success, error, ResponseCode
 from services.summary_service import SummaryService
 from services.md_storage import ensure_knowledge_dirs
@@ -59,8 +60,8 @@ app = FastAPI(
 
 # Add CORS middleware
 _ALLOWED_ORIGINS = [
-    "http://127.0.0.1:8700",
-    "http://localhost:8700",
+    "http://127.0.0.1:8701",
+    "http://localhost:8701",
     "null",  # Chrome extension pages send null origin
 ]
 
@@ -94,6 +95,7 @@ async def global_exception_handler(request, exc):
 
 # Include all routers
 app.include_router(api_router)
+app.include_router(bbs_page_router)
 
 
 @app.get("/")

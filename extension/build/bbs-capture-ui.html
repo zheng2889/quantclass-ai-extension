@@ -1,0 +1,78 @@
+<!-- BBS 抓取按钮 -->
+<div id="bbs-capture-panel" class="bbs-capture-panel" style="display: none;">
+  <button id="btn-capture-digest" class="bbs-capture-btn">
+    抓取精华帖
+  </button>
+</div>
+
+<style>
+.bbs-capture-panel {
+  padding: 10px;
+  border-top: 1px solid #eee;
+  margin-top: 10px;
+}
+.bbs-capture-btn {
+  width: 100%;
+  padding: 8px 16px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.bbs-capture-btn:hover {
+  background: #40a9ff;
+}
+.bbs-capture-btn:disabled {
+  background: #d9d9d9;
+  cursor: not-allowed;
+}
+</style>
+
+<script>
+// BBS 抓取按钮初始化
+(function() {
+  function init() {
+    const panel = document.getElementById('bbs-capture-panel');
+    const btn = document.getElementById('btn-capture-digest');
+
+    if (panel && btn) {
+      // 显示面板
+      panel.style.display = 'block';
+
+      // 绑定点击事件
+      btn.addEventListener('click', async function() {
+        // 获取当前标签页
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+        if (tab && tab.url && tab.url.includes('bbs.quantclass.cn')) {
+          btn.disabled = true;
+          btn.textContent = '处理中...';
+
+          // 在标签页执行抓取
+          chrome.tabs.sendMessage(tab.id, { type: 'BBS_CAPTURE_START' }, function(response) {
+            btn.disabled = false;
+            btn.textContent = '抓取精华帖';
+
+            if (response && response.success) {
+              alert('抓取完成: ' + response.message);
+            } else {
+              alert('抓取失败: ' + (response?.error || '未知错误'));
+            }
+          });
+        } else {
+          alert('请在 bbs.quantclass.cn 论坛页面使用此功能');
+        }
+      });
+    }
+  }
+
+  // 等待popup加载完成
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
