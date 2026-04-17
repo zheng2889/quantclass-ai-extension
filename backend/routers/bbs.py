@@ -85,12 +85,17 @@ BBS_DETAIL_PAGE = """<!DOCTYPE html>
       try {
         const resp = await fetch('/api/bbs/detail/' + POST_ID);
         const data = await resp.json();
-        if (!data.success || !data.data) {
+        if (data.code !== 0) {
           document.getElementById('loading').style.display = 'none';
           document.getElementById('error_msg').style.display = 'block';
           return;
         }
         const post = data.data;
+        if (!post) {
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('error_msg').style.display = 'block';
+          return;
+        }
         document.getElementById('loading').style.display = 'none';
         document.getElementById('content').style.display = 'block';
 
@@ -160,7 +165,7 @@ BBS_DETAIL_PAGE = """<!DOCTYPE html>
           return;
         }
         const data = await resp.json();
-        if (data.success) {
+        if (data.code === 0) {
           alert('AI分析已完成，正在刷新页面...');
           loadDetail();
         } else {
@@ -185,8 +190,8 @@ BBS_DETAIL_PAGE = """<!DOCTYPE html>
         .replace(/^## (.+)$/gm, '<h3>$1</h3>')
         .replace(/^# (.+)$/gm, '<h2>$1</h2>')
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/^\- (.+)$/gm, '<li>$1</li>')
-        .replace(/^\* (.+)$/gm, '<li>$1</li>')
+        .replace(/((?:^\- .+$\n?)+)/gm, function(m) { return '<ul>' + m.replace(/^\- (.+)$/gm, '<li>$1</li>') + '</ul>'; })
+        .replace(/((?:^\* .+$\n?)+)/gm, function(m) { return '<ul>' + m.replace(/^\* (.+)$/gm, '<li>$1</li>') + '</ul>'; })
         .replace(/\n\n/g, '</p><p>')
         .replace(/\n/g, '<br>');
       return '<p>' + html + '</p>';
@@ -349,7 +354,7 @@ BBS_LIST_PAGE = """<!DOCTYPE html>
         const resp = await fetch('/api/bbs/list?' + params);
         const data = await resp.json();
 
-        if (data.success) {
+        if (data.code === 0) {
           renderTable(data.data.items);
           total = data.data.total;
           currentPage = data.data.page;
@@ -456,7 +461,8 @@ async def analyze_post(request: dict, _admin=Depends(require_admin)):
     try:
         result = await BBSService.trigger_analysis(
             post_id=post_id,
-            md_file_path=request.get("md_file_path")
+            md_file_path=request.get("md_file_path"),
+            model=request.get("model")
         )
         return success(result)
     except Exception as e:

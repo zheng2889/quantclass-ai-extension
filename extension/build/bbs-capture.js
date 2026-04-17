@@ -177,7 +177,7 @@ const BBSCapture = {
     for (const post of posts) {
       try {
         const result = await this.syncPost(post);
-        if (result.success) synced++;
+        if (result.code === 0) synced++;
       } catch (e) {
         console.warn('Sync error:', e);
       }

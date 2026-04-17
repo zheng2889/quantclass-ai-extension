@@ -29,6 +29,9 @@ BBS_ANALYSIS_PROMPT = """你是一位量化金融领域的专业分析师。请�
 分析结果："""
 
 
+VALID_STATUSES = ("pending", "success", "failed", "no_permission")
+
+
 class BBSService:
     """BBS service for managing posts."""
 
@@ -42,15 +45,17 @@ class BBSService:
         status: str = "pending"
     ) -> dict:
         """Insert or update a post using UPSERT (atomic, no race condition)."""
+        if status not in VALID_STATUSES:
+            raise ValueError(f"Invalid status: {status}. Must be one of {VALID_STATUSES}")
         await db.execute(
             """INSERT INTO bbs_list (post_id, url, title, author_id, author_name, status)
             VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(post_id) DO UPDATE SET
                 url = excluded.url,
-                title = excluded.title,
-                author_id = excluded.author_id,
-                author_name = excluded.author_name,
-                status = excluded.status""",
+                title = COALESCE(excluded.title, bbs_list.title),
+                author_id = COALESCE(excluded.author_id, bbs_list.author_id),
+                author_name = COALESCE(excluded.author_name, bbs_list.author_name),
+                status = COALESCE(excluded.status, bbs_list.status)""",
             (post_id, url, title, author_id, author_name, status)
         )
 
@@ -106,9 +111,12 @@ class BBSService:
         total_result = await db.fetchone(count_sql, tuple(params))
         total = total_result["total"] if total_result else 0
 
-        # Get list
+        # Get list — exclude internal file paths from list view
         offset = (page - 1) * page_size
-        sql = f"""SELECT * FROM bbs_list
+        sql = f"""SELECT id, post_id, url, title, author_id, author_name,
+            publish_time, modify_time, is_digest, is_original,
+            has_attachment, has_ai_result, status, crawled_at
+            FROM bbs_list
             WHERE {where_clause}
             ORDER BY publish_time DESC
             LIMIT ? OFFSET ?"""
